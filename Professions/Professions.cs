@@ -15,7 +15,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.0.2";
+	private const string ModVersion = "1.0.3";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -273,7 +273,7 @@ public class Professions : BaseUnityPlugin
 	{
 		private static bool Prefix(Skills __instance, Skills.SkillType skillType)
 		{
-			return __instance.GetSkillFactor(skillType) > 0 || (fromSkill(skillType) is { } profession && blockOtherProfessions[profession].Value == ProfessionToggle.Ignored);
+			return fromSkill(skillType) is not { } profession || __instance.GetSkillFactor(skillType) > 0 || blockOtherProfessions[profession].Value == ProfessionToggle.Ignored;
 		}
 	}
 }
