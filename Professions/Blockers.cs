@@ -229,12 +229,15 @@ public static class Blockers
 			AccessTools.DeclaredMethod(typeof(Destructible), nameof(Destructible.Damage))
 		};
 
-		private static void Prefix(HitData hit)
+		private static void Prefix(object __instance, HitData hit)
 		{
 			if (!isAllowed(Profession.Mining) && hit.GetAttacker() == Player.m_localPlayer)
 			{
-				Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a miner.");
-				hit.m_damage.m_pickaxe = 0;
+				if (__instance is not Destructible destructible || destructible.m_damages.m_pickaxe > 0)
+				{
+					Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a miner.");
+					hit.m_damage.m_pickaxe = 0;
+				}
 			}
 		}
 	}
