@@ -233,7 +233,7 @@ public static class Blockers
 		{
 			if (!isAllowed(Profession.Mining) && hit.GetAttacker() == Player.m_localPlayer)
 			{
-				if (__instance is not Destructible destructible || destructible.m_damages.m_pickaxe > 0)
+				if (__instance is not Destructible destructible || (destructible.m_damages.m_pickaxe > 0 && destructible.m_damages.m_chop == 0))
 				{
 					Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a miner.");
 					hit.m_damage.m_pickaxe = 0;

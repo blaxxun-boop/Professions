@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
 
@@ -21,4 +22,37 @@ public static class Helper
 	}
 
 	public static Sprite loadSprite(string name, int width, int height) => Sprite.Create(loadTexture(name), new Rect(0, 0, width, height), Vector2.zero);
+	
+	public static string getHumanFriendlyTime(int seconds)
+	{
+		TimeSpan timeSpan = TimeSpan.FromSeconds(seconds);
+
+		if (timeSpan.TotalSeconds < 60)
+		{
+			return "less than 1 minute";
+		}
+		
+		string timeString = "";
+		if (timeSpan.TotalDays >= 1)
+		{
+			timeString += $"{(int)timeSpan.TotalDays} day" + (timeSpan.TotalDays >= 2 ? "s" : "");
+		}
+		if (timeSpan.Hours >= 1)
+		{
+			if (timeSpan.TotalDays >= 1)
+			{
+				timeString += " and ";
+			}
+			timeString += $"{timeSpan.Hours} hour" + (timeSpan.Hours >= 2 ? "s" : "");
+		}
+		if (timeSpan.Minutes >= 1)
+		{
+			if (timeSpan.TotalDays >= 1 || timeSpan.Hours >= 1)
+			{
+				timeString += " and ";
+			}
+			timeString += $"{timeSpan.Minutes} minute" + (timeSpan.Minutes >= 2 ? "s" : "");
+		}
+		return timeString;
+	}
 }
