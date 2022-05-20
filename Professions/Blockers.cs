@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 using Profession = Professions.Professions.Profession;
 
 namespace Professions;
@@ -269,6 +271,36 @@ public static class Blockers
 			}
 			
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a sailor.");
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingStation), nameof(CraftingStation.Interact))]
+	private class BlockAlchemyStation
+	{
+		private static bool Prefix(CraftingStation __instance)
+		{
+			if (!__instance.name.StartsWith("opalchemy", StringComparison.Ordinal) || isAllowed(Profession.Alchemy))
+			{
+				return true;
+			}
+			
+			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not an alchemist.");
+			return false;
+		}
+	}
+	
+	[HarmonyPatch(typeof(Incinerator), nameof(Incinerator.OnIncinerate))]
+	private class BlockAlchemyIncinerator
+	{
+		private static bool Prefix(Incinerator __instance)
+		{
+			if (!__instance.name.StartsWith("opcauldron", StringComparison.Ordinal) || isAllowed(Profession.Alchemy))
+			{
+				return true;
+			}
+			
+			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not an alchemist.");
 			return false;
 		}
 	}
