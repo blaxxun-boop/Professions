@@ -21,21 +21,21 @@ public static class Blockers
 		private static bool CheckBlacksmithingItem(ItemDrop.ItemData.SharedData item)
 		{
 			return item.m_itemType is
-				ItemDrop.ItemData.ItemType.Bow or
-				ItemDrop.ItemData.ItemType.Chest or
-				ItemDrop.ItemData.ItemType.Hands or
-				ItemDrop.ItemData.ItemType.Helmet or
-				ItemDrop.ItemData.ItemType.Legs or
-				ItemDrop.ItemData.ItemType.Shield or
-				ItemDrop.ItemData.ItemType.Shoulder or
-				ItemDrop.ItemData.ItemType.OneHandedWeapon or
-				ItemDrop.ItemData.ItemType.TwoHandedWeapon;
+				       ItemDrop.ItemData.ItemType.Bow or
+				       ItemDrop.ItemData.ItemType.Chest or
+				       ItemDrop.ItemData.ItemType.Hands or
+				       ItemDrop.ItemData.ItemType.Helmet or
+				       ItemDrop.ItemData.ItemType.Legs or
+				       ItemDrop.ItemData.ItemType.Shield or
+				       ItemDrop.ItemData.ItemType.Shoulder or
+				       ItemDrop.ItemData.ItemType.TwoHandedWeapon ||
+			       (item.m_itemType is ItemDrop.ItemData.ItemType.OneHandedWeapon && !item.m_attack.m_consumeItem);
 		}
 
 		[HarmonyPriority(Priority.Last)]
 		private static void Postfix(InventoryGui __instance)
 		{
-			if (__instance.m_selectedRecipe.Key?.m_item is { } itemdrop && CheckBlacksmithingItem(itemdrop.m_itemData.m_shared) && !isAllowed(Profession.Blacksmithing))
+			if ((__instance.InCraftTab() || __instance.InUpradeTab()) && __instance.m_selectedRecipe.Key?.m_item is { } itemdrop && CheckBlacksmithingItem(itemdrop.m_itemData.m_shared) && !isAllowed(Profession.Blacksmithing))
 			{
 				__instance.m_craftButton.interactable = false;
 				__instance.m_craftButton.GetComponentInChildren<Text>().text = "You cannot perform this action, because you are not a blacksmith.";
@@ -91,7 +91,7 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a builder.");
 			return false;
 		}
@@ -144,7 +144,7 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a cook.");
 			return false;
 		}
@@ -171,7 +171,7 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a farmer.");
 			return false;
 		}
@@ -253,7 +253,7 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a rancher.");
 			return false;
 
@@ -269,7 +269,7 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a sailor.");
 			return false;
 		}
@@ -284,12 +284,12 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not an alchemist.");
 			return false;
 		}
 	}
-	
+
 	[HarmonyPatch(typeof(Incinerator), nameof(Incinerator.OnIncinerate))]
 	private class BlockAlchemyIncinerator
 	{
@@ -299,7 +299,7 @@ public static class Blockers
 			{
 				return true;
 			}
-			
+
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not an alchemist.");
 			return false;
 		}
