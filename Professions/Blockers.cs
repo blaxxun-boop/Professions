@@ -304,4 +304,19 @@ public static class Blockers
 			return false;
 		}
 	}
+	
+	[HarmonyPatch(typeof(CraftingStation), nameof(CraftingStation.Interact))]
+	private class BlockGemcuttersTable
+	{
+		private static bool Prefix(CraftingStation __instance)
+		{
+			if (!__instance.name.StartsWith("op_transmution_table", StringComparison.Ordinal) || isAllowed(Profession.Jewelcrafting))
+			{
+				return true;
+			}
+
+			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a jeweler.");
+			return false;
+		}
+	}
 }

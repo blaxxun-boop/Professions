@@ -16,7 +16,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.1.1";
+	private const string ModVersion = "1.2.0";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -71,7 +71,8 @@ public class Professions : BaseUnityPlugin
 		Mining,
 		Ranching,
 		Sailing,
-		Alchemy
+		Alchemy,
+		Jewelcrafting
 	}
 
 	private static readonly Dictionary<Profession, string> professionDescriptions = new()
@@ -111,6 +112,10 @@ public class Professions : BaseUnityPlugin
 		{
 			Profession.Alchemy,
 			"An alchemist creates powerful potions, flasks and elixirs."
+		},
+		{
+			Profession.Jewelcrafting,
+			"A jeweler cuts powerful magic gems and adds sockets to equipment."
 		}
 	};
 
