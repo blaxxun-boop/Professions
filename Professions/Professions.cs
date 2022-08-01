@@ -16,7 +16,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.2.0";
+	private const string ModVersion = "1.2.1";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -31,7 +31,7 @@ public class Professions : BaseUnityPlugin
 	private static DateTime serverTime = DateTime.Now;
 
 	private int configOrder = 0;
-	
+
 	private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
 	{
 		description = new ConfigDescription(description.Description, description.AcceptableValues, description.Tags.AddItem(new ConfigurationManagerAttributes { Order = configOrder-- }).ToArray());
@@ -127,54 +127,62 @@ public class Professions : BaseUnityPlugin
 	private static readonly Dictionary<Profession, GameObject> professionPanelElements = new();
 
 	private readonly Assembly? bepinexConfigManager = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "ConfigurationManager");
-	
+
 	private class ConfigurationManagerAttributes
 	{
 		[UsedImplicitly] public bool? Browsable;
 		[UsedImplicitly] public int? Order;
 	}
-	
+
 	public void Awake()
 	{
-		Type? configManagerType = bepinexConfigManager?.GetType("ConfigurationManager.ConfigurationManager");
-		object? configManager = configManagerType == null ? null : BepInEx.Bootstrap.Chainloader.ManagerObject.GetComponent(configManagerType);
-
-		void reloadConfigDisplay() => configManagerType?.GetMethod("BuildSettingList")!.Invoke(configManager, Array.Empty<object>());
-
-		serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, "If on, the configuration is locked and can be changed by server admins only.");
-		configSync.AddLockingConfigEntry(serverConfigLocked);
-		maximumAllowedProfessions = config("1 - General", "Maximum Number of Professions", 1, new ConfigDescription("Sets the maximum number of professions a player is allowed to have at the same time.", new AcceptableValueRange<int>(1, 5)));
-		allowUnselect = config("1 - General", "Allow Profession Change", Toggle.Off, "If on, players can unselect professions and select new ones.");
-		ConfigurationManagerAttributes changeCooldownAttributes = new() { Browsable = allowUnselect.Value == Toggle.On };
-		allowUnselect.SettingChanged += (_, _) =>
+		try
 		{
-			changeCooldownAttributes.Browsable = allowUnselect.Value == Toggle.On;
-			reloadConfigDisplay();
-		};
-		professionChangeCooldown = config("1 - General", "Profession Change Cooldown", 0f, new ConfigDescription("Time between profession changes. Uses real time hours. Use 0 to disable this.", null, changeCooldownAttributes));
-		professionPanelHotkey = config("1 - General", "Profession Panel Hotkey", new KeyboardShortcut(KeyCode.P), "Key or key combination to open the profession panel.", false);
+			Type? configManagerType = bepinexConfigManager?.GetType("ConfigurationManager.ConfigurationManager");
+			object? configManager = configManagerType == null ? null : BepInEx.Bootstrap.Chainloader.ManagerObject.GetComponent(configManagerType);
 
-		foreach (Profession profession in (Profession[])Enum.GetValues(typeof(Profession)))
-		{
-			blockOtherProfessions[profession] = config("2 - Professions", $"{profession} behaviour", ProfessionToggle.BlockExperience, "Ignored: The skill is not considered a profession and can be used by everyone.\nBlock Experience: If you did not pick the skills profession, you will not get any experience for this skill.\nBlock Usage: If you did not pick the skills profession, you will not be able to perform the action that would grant you experience for the skill.");
-			blockOtherProfessions[profession].SettingChanged += (_, _) =>
+			void reloadConfigDisplay() => configManagerType?.GetMethod("BuildSettingList")!.Invoke(configManager, Array.Empty<object>());
+
+			serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, "If on, the configuration is locked and can be changed by server admins only.");
+			configSync.AddLockingConfigEntry(serverConfigLocked);
+			maximumAllowedProfessions = config("1 - General", "Maximum Number of Professions", 1, new ConfigDescription("Sets the maximum number of professions a player is allowed to have at the same time.", new AcceptableValueRange<int>(1, 5)));
+			allowUnselect = config("1 - General", "Allow Profession Change", Toggle.Off, "If on, players can unselect professions and select new ones.");
+			ConfigurationManagerAttributes changeCooldownAttributes = new() { Browsable = allowUnselect.Value == Toggle.On };
+			allowUnselect.SettingChanged += (_, _) =>
 			{
-				if (professionPanelElements.TryGetValue(profession, out GameObject element))
-				{
-					element.SetActive(blockOtherProfessions[profession].Value != ProfessionToggle.Ignored);
-				}
+				changeCooldownAttributes.Browsable = allowUnselect.Value == Toggle.On;
+				reloadConfigDisplay();
 			};
+			professionChangeCooldown = config("1 - General", "Profession Change Cooldown", 0f, new ConfigDescription("Time between profession changes. Uses real time hours. Use 0 to disable this.", null, changeCooldownAttributes));
+			professionPanelHotkey = config("1 - General", "Profession Panel Hotkey", new KeyboardShortcut(KeyCode.P), "Key or key combination to open the profession panel.", false);
+
+			foreach (Profession profession in (Profession[])Enum.GetValues(typeof(Profession)))
+			{
+				blockOtherProfessions[profession] = config("2 - Professions", $"{profession} behaviour", ProfessionToggle.BlockExperience, "Ignored: The skill is not considered a profession and can be used by everyone.\nBlock Experience: If you did not pick the skills profession, you will not get any experience for this skill.\nBlock Usage: If you did not pick the skills profession, you will not be able to perform the action that would grant you experience for the skill.");
+				blockOtherProfessions[profession].SettingChanged += (_, _) =>
+				{
+					if (professionPanelElements.TryGetValue(profession, out GameObject element))
+					{
+						element.SetActive(blockOtherProfessions[profession].Value != ProfessionToggle.Ignored);
+					}
+				};
+			}
+
+			Assembly assembly = Assembly.GetExecutingAssembly();
+			Harmony harmony = new(ModGUID);
+			harmony.PatchAll(assembly);
+
+			AssetBundle assets = LoadAssetBundle("professionSelect");
+			professionPanel = assets.LoadAsset<GameObject>("ProfessionPanel");
+
+			Skill_Element.blockExperience = Helper.loadSprite("blockxp.png", 20, 20);
+			Skill_Element.blockUsage = Helper.loadSprite("blockusage.png", 20, 20);
 		}
-
-		Assembly assembly = Assembly.GetExecutingAssembly();
-		Harmony harmony = new(ModGUID);
-		harmony.PatchAll(assembly);
-
-		AssetBundle assets = LoadAssetBundle("professionSelect");
-		professionPanel = assets.LoadAsset<GameObject>("ProfessionPanel");
-
-		Skill_Element.blockExperience = Helper.loadSprite("blockxp.png", 20, 20);
-		Skill_Element.blockUsage = Helper.loadSprite("blockusage.png", 20, 20);
+		catch (Exception ex)
+		{
+			Debug.LogError($"Professions Awake failed. Shutting down, to prevent further issues with the professions. Exception:\n{ex}");
+			Application.Quit();
+		}
 	}
 
 	[HarmonyPatch(typeof(ZNet), nameof(ZNet.OnNewConnection))]
@@ -192,7 +200,7 @@ public class Professions : BaseUnityPlugin
 			}
 		}
 	}
-	
+
 	private static void onServerTimeReceived(ZRpc? rpc, long time)
 	{
 		serverTime = new DateTime(time);
@@ -333,7 +341,7 @@ public class Professions : BaseUnityPlugin
 										return;
 									}
 								}
-	
+
 								Player.m_localPlayer.m_skills.m_skillData.Remove(skillType);
 								Player.m_localPlayer.m_knownStations["Professions LastProfessionChange"] = (int)((DateTimeOffset)serverTime).ToUnixTimeSeconds();
 							}
