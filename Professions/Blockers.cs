@@ -208,15 +208,23 @@ public static class Blockers
 		private static IEnumerable<MethodInfo> TargetMethods() => new[]
 		{
 			AccessTools.DeclaredMethod(typeof(TreeLog), nameof(TreeLog.Damage)),
-			AccessTools.DeclaredMethod(typeof(TreeBase), nameof(TreeBase.Damage))
+			AccessTools.DeclaredMethod(typeof(TreeBase), nameof(TreeBase.Damage)),
+			AccessTools.DeclaredMethod(typeof(Destructible), nameof(Destructible.Damage))
 		};
 
-		private static void Prefix(HitData hit)
+		private static void Prefix(object __instance, HitData hit)
 		{
 			if (!isAllowed(Profession.Lumberjacking) && hit.GetAttacker() == Player.m_localPlayer)
 			{
-				Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a lumberjack.");
-				hit.m_damage.m_chop = 0;
+				if (__instance is not Destructible destructible || destructible.m_destructibleType == DestructibleType.Tree)
+				{
+					if (__instance is not TreeLog and not TreeBase)
+					{
+						hit.m_damage.m_slash = 0;
+					}
+					Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a lumberjack.");
+					hit.m_damage.m_chop = 0;
+				}
 			}
 		}
 	}
@@ -235,7 +243,7 @@ public static class Blockers
 		{
 			if (!isAllowed(Profession.Mining) && hit.GetAttacker() == Player.m_localPlayer)
 			{
-				if (__instance is not Destructible destructible || (destructible.m_damages.m_pickaxe > 0 && destructible.m_damages.m_chop == 0))
+				if (__instance is not Destructible destructible || (destructible.m_damages.m_pickaxe > 0 && destructible.m_damages.m_chop == 0 && destructible.m_destructibleType != DestructibleType.Tree))
 				{
 					Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a miner.");
 					hit.m_damage.m_pickaxe = 0;
