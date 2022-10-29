@@ -22,7 +22,7 @@ public static class Helper
 	}
 
 	public static Sprite loadSprite(string name, int width, int height) => Sprite.Create(loadTexture(name), new Rect(0, 0, width, height), Vector2.zero);
-	
+
 	public static string getHumanFriendlyTime(int seconds)
 	{
 		TimeSpan timeSpan = TimeSpan.FromSeconds(seconds);
@@ -31,7 +31,7 @@ public static class Helper
 		{
 			return "less than 1 minute";
 		}
-		
+
 		string timeString = "";
 		if (timeSpan.TotalDays >= 1)
 		{

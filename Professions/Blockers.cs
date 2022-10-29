@@ -312,7 +312,7 @@ public static class Blockers
 			return false;
 		}
 	}
-	
+
 	[HarmonyPatch(typeof(CraftingStation), nameof(CraftingStation.Interact))]
 	private class BlockGemcuttersTable
 	{
