@@ -243,7 +243,7 @@ public static class Blockers
 		{
 			if (!isAllowed(Profession.Mining) && hit.GetAttacker() == Player.m_localPlayer)
 			{
-				if (__instance is not Destructible destructible || (destructible.m_damages.m_pickaxe > 0 && destructible.m_damages.m_chop == 0 && destructible.m_destructibleType != DestructibleType.Tree))
+				if (__instance is not Destructible destructible || (destructible.m_damages is { m_pickaxe: > 0, m_chop: 0 } && destructible.m_destructibleType != DestructibleType.Tree))
 				{
 					Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a miner.");
 					hit.m_damage.m_pickaxe = 0;
@@ -326,5 +326,27 @@ public static class Blockers
 			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a jeweler.");
 			return false;
 		}
+	}
+
+	[HarmonyPatch(typeof(Pickable), nameof(Pickable.Interact))]
+	private class BlockForaging
+	{
+		private class SkipForagingException : Exception
+		{
+		}
+
+		[HarmonyPriority(Priority.First)]
+		private static void Prefix(Pickable __instance)
+		{
+			if (__instance.m_respawnTimeMinutes == 0 || __instance.m_itemPrefab.name == "Wood" || isAllowed(Profession.Foraging))
+			{
+				return;
+			}
+
+			Player.m_localPlayer.Message(MessageHud.MessageType.Center, "You cannot perform this action, because you are not a forager.");
+			throw new SkipForagingException();
+		}
+
+		private static Exception? Finalizer(Exception __exception) => __exception is SkipForagingException ? null : __exception;
 	}
 }

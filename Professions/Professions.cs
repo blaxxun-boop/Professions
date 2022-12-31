@@ -16,7 +16,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.2.3";
+	private const string ModVersion = "1.3.0";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -72,7 +72,8 @@ public class Professions : BaseUnityPlugin
 		Ranching,
 		Sailing,
 		Alchemy,
-		Jewelcrafting
+		Jewelcrafting,
+		Foraging
 	}
 
 	private static readonly Dictionary<Profession, string> professionDescriptions = new()
@@ -116,6 +117,10 @@ public class Professions : BaseUnityPlugin
 		{
 			Profession.Jewelcrafting,
 			"A jeweler cuts powerful magic gems and adds sockets to equipment."
+		},
+		{
+			Profession.Foraging,
+			"A forager collects berries and mushrooms."
 		}
 	};
 
