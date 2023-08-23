@@ -13,10 +13,11 @@ using UnityEngine;
 namespace Professions;
 
 [BepInPlugin(ModGUID, ModName, ModVersion)]
+[BepInIncompatibility("org.bepinex.plugins.valheim_plus")]
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.3.0";
+	private const string ModVersion = "1.3.1";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -49,7 +50,7 @@ public class Professions : BaseUnityPlugin
 	public enum Toggle
 	{
 		On = 1,
-		Off = 0
+		Off = 0,
 	}
 
 	public enum ProfessionToggle
@@ -58,7 +59,7 @@ public class Professions : BaseUnityPlugin
 		[Description("Block Experience")]
 		BlockExperience = 1,
 		[Description("Block Usage")]
-		BlockUsage = 2
+		BlockUsage = 2,
 	}
 
 	public enum Profession
@@ -73,7 +74,7 @@ public class Professions : BaseUnityPlugin
 		Sailing,
 		Alchemy,
 		Jewelcrafting,
-		Foraging
+		Foraging,
 	}
 
 	private static readonly Dictionary<Profession, string> professionDescriptions = new()
@@ -121,7 +122,7 @@ public class Professions : BaseUnityPlugin
 		{
 			Profession.Foraging,
 			"A forager collects berries and mushrooms."
-		}
+		},
 	};
 
 	private static Skills.SkillType fromProfession(Profession profession) => (Skills.SkillType)Math.Abs(profession.ToString().GetStableHashCode());
@@ -275,7 +276,7 @@ public class Professions : BaseUnityPlugin
 		private static bool Prefix() => !professionPanelInstance!.activeSelf && AllowMainMenu;
 	}
 
-	[HarmonyPatch(typeof(Menu), nameof(Menu.IsVisible))]
+	[HarmonyPatch(typeof(TextInput), nameof(TextInput.IsVisible))]
 	private class DisablePlayerInputInProfessionSelector
 	{
 		private static void Postfix(ref bool __result)

@@ -49,7 +49,7 @@ public static class Blockers
 		private static IEnumerable<MethodInfo> TargetMethods() => new[]
 		{
 			AccessTools.DeclaredMethod(typeof(Smelter), nameof(Smelter.OnAddOre)),
-			AccessTools.DeclaredMethod(typeof(Smelter), nameof(Smelter.OnAddFuel))
+			AccessTools.DeclaredMethod(typeof(Smelter), nameof(Smelter.OnAddFuel)),
 		};
 
 		private static bool Prefix(Smelter __instance, ref bool __result)
@@ -209,7 +209,7 @@ public static class Blockers
 		{
 			AccessTools.DeclaredMethod(typeof(TreeLog), nameof(TreeLog.Damage)),
 			AccessTools.DeclaredMethod(typeof(TreeBase), nameof(TreeBase.Damage)),
-			AccessTools.DeclaredMethod(typeof(Destructible), nameof(Destructible.Damage))
+			AccessTools.DeclaredMethod(typeof(Destructible), nameof(Destructible.Damage)),
 		};
 
 		private static void Prefix(object __instance, HitData hit)
@@ -236,7 +236,7 @@ public static class Blockers
 		{
 			AccessTools.DeclaredMethod(typeof(MineRock), nameof(MineRock.Damage)),
 			AccessTools.DeclaredMethod(typeof(MineRock5), nameof(MineRock5.Damage)),
-			AccessTools.DeclaredMethod(typeof(Destructible), nameof(Destructible.Damage))
+			AccessTools.DeclaredMethod(typeof(Destructible), nameof(Destructible.Damage)),
 		};
 
 		private static void Prefix(object __instance, HitData hit)
