@@ -17,7 +17,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.3.1";
+	private const string ModVersion = "1.4.0";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -75,6 +75,7 @@ public class Professions : BaseUnityPlugin
 		Alchemy,
 		Jewelcrafting,
 		Foraging,
+		Exploration,
 	}
 
 	private static readonly Dictionary<Profession, string> professionDescriptions = new()
@@ -123,15 +124,17 @@ public class Professions : BaseUnityPlugin
 			Profession.Foraging,
 			"A forager collects berries and mushrooms."
 		},
+		{
+			Profession.Exploration,
+			"An explorer explores the world and searches treasure chests."
+		},
 	};
 
 	private static Skills.SkillType fromProfession(Profession profession) => (Skills.SkillType)Math.Abs(profession.ToString().GetStableHashCode());
 	private static Profession? fromSkill(Skills.SkillType skill) => ((Profession[])Enum.GetValues(typeof(Profession))).Select(p => (Profession?)p).FirstOrDefault(p => skill == fromProfession(p!.Value));
-
 	private static GameObject professionPanel = null!;
 	private static GameObject? professionPanelInstance;
 	private static readonly Dictionary<Profession, GameObject> professionPanelElements = new();
-
 	private readonly Assembly? bepinexConfigManager = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "ConfigurationManager");
 
 	private class ConfigurationManagerAttributes
@@ -379,4 +382,5 @@ public class Professions : BaseUnityPlugin
 			return fromSkill(skillType) is not { } profession || __instance.GetSkillFactor(skillType) > 0 || blockOtherProfessions[profession].Value == ProfessionToggle.Ignored;
 		}
 	}
+
 }

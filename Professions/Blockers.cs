@@ -349,4 +349,11 @@ public static class Blockers
 
 		private static Exception? Finalizer(Exception __exception) => __exception is SkipForagingException ? null : __exception;
 	}
+	
+	[HarmonyPatch(typeof(Minimap), nameof(Minimap.Explore), typeof(Vector3), typeof(float))]
+	private class BlockExploration
+	{
+		[HarmonyPriority(Priority.First)]
+		private static bool Prefix() => isAllowed(Profession.Exploration);
+	}
 }
