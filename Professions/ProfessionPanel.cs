@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 // ReSharper disable once CheckNamespace
@@ -33,10 +34,10 @@ public class ProfessionPanel : MonoBehaviour
 
 		Image ornament = ingameGui.transform.Find("Menu/MenuRoot/Menu/ornament").gameObject.GetComponent<Image>();
 		Image background = ingameGui.transform.Find("Inventory_screen/root/Player/Bkg").gameObject.GetComponent<Image>();
-		Font fontStyle = ingameGui.transform.Find("Inventory_screen/root/Player/Armor/ac_text").gameObject.GetComponent<Text>().font;
+		TMP_FontAsset fontStyle = ingameGui.transform.Find("Inventory_screen/root/Player/Armor/ac_text").gameObject.GetComponent<TextMeshProUGUI>().font;
 
-		description.font = fontStyle;
-		header.font = fontStyle;
+		description.font = fontStyle.sourceFontFile;
+		header.font = fontStyle.sourceFontFile;
 		header.text = "Select Profession";
 		linebreak.sprite = ornament.sprite;
 		ContentBkg.sprite = background.sprite;
