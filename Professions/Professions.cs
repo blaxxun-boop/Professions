@@ -17,7 +17,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.4.1";
+	private const string ModVersion = "1.4.2";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -28,6 +28,8 @@ public class Professions : BaseUnityPlugin
 	public static ConfigEntry<Toggle> allowUnselect = null!;
 	private static ConfigEntry<float> professionChangeCooldown = null!;
 	public static readonly Dictionary<Profession, ConfigEntry<ProfessionToggle>> blockOtherProfessions = new();
+	internal static ConfigEntry<int> minimumUnselectedThreshold = null!;
+	private static Dictionary<Profession, bool> selectedProfessions = new();
 
 	private static DateTime serverTime = DateTime.Now;
 
@@ -76,6 +78,30 @@ public class Professions : BaseUnityPlugin
 		Jewelcrafting,
 		Foraging,
 		Exploration,
+	}
+
+	public static string Serialize(Dictionary<Profession, bool> selections)
+	{
+		return string.Join(";", selections.Where(o => o.Value == true).Select(o => o.Key + "," + o.Value));
+	}
+
+	public static Dictionary<Profession, bool> Deserialize(string selections)
+	{
+		Dictionary<Profession, bool> dict = new();
+		foreach (string selection in selections.Split(';'))
+		{
+			string[] parts = selection.Split(',');
+			if (parts.Length == 2)
+			{
+				if (Enum.TryParse(parts[0], out Profession key))
+				{
+					bool.TryParse(parts[1], out bool value);
+					dict[key] = value;
+				}
+			}
+		}
+
+		return dict;
 	}
 
 	private static readonly Dictionary<Profession, string> professionDescriptions = new()
@@ -165,6 +191,8 @@ public class Professions : BaseUnityPlugin
 			professionChangeCooldown = config("1 - General", "Profession Change Cooldown", 0f, new ConfigDescription("Time between profession changes. Uses real time hours. Use 0 to disable this.", null, changeCooldownAttributes));
 			professionPanelHotkey = config("1 - General", "Profession Panel Hotkey", new KeyboardShortcut(KeyCode.P), "Key or key combination to open the profession panel.", false);
 
+			minimumUnselectedThreshold = config("1 - General", "Minimum Threshold of Unselected Professions", 0, new ConfigDescription("Minimum allowed XP in all unselected professions.  Defaults to 0.", new AcceptableValueRange<int>(0, 100)));
+
 			foreach (Profession profession in (Profession[])Enum.GetValues(typeof(Profession)))
 			{
 				blockOtherProfessions[profession] = config("2 - Professions", $"{profession} behaviour", ProfessionToggle.BlockExperience, "Ignored: The skill is not considered a profession and can be used by everyone.\nBlock Experience: If you did not pick the skills profession, you will not get any experience for this skill.\nBlock Usage: If you did not pick the skills profession, you will not be able to perform the action that would grant you experience for the skill.");
@@ -175,6 +203,8 @@ public class Professions : BaseUnityPlugin
 						element.SetActive(blockOtherProfessions[profession].Value != ProfessionToggle.Ignored);
 					}
 				};
+
+				selectedProfessions[profession] = false;
 			}
 
 			Assembly assembly = Assembly.GetExecutingAssembly();
@@ -191,6 +221,14 @@ public class Professions : BaseUnityPlugin
 		{
 			Debug.LogError($"Professions Awake failed. Shutting down, to prevent further issues with the professions. Exception:\n{ex}");
 			Application.Quit();
+		}
+	}
+
+	private static void ResetSelections()
+	{
+		foreach (Profession profession in (Profession[])Enum.GetValues(typeof(Profession)))
+		{
+			selectedProfessions[profession] = false;
 		}
 	}
 
@@ -261,7 +299,7 @@ public class Professions : BaseUnityPlugin
 
 	private static void UpdateSelectPanelSelections()
 	{
-		List<Profession> activeProfessions = selectedProfessions(Player.m_localPlayer);
+		List<Profession> activeProfessions = GetSelectedProfessions(Player.m_localPlayer);
 		foreach (KeyValuePair<Profession, GameObject> skillElements in professionPanelElements)
 		{
 			Skill_Element element = skillElements.Value.GetComponent<Skill_Element>();
@@ -270,6 +308,40 @@ public class Professions : BaseUnityPlugin
 		}
 
 		professionPanelInstance!.GetComponent<ProfessionPanel>().description.text = $"You have {activeProfessions.Count} / {maximumAllowedProfessions.Value} professions selected.\nYou are{(allowUnselect.Value == Toggle.Off ? " not" : "")} allowed to change your professions{(professionChangeCooldown.Value > 0 && allowUnselect.Value == Toggle.On ? $" every {Helper.getHumanFriendlyTime((int)(professionChangeCooldown.Value * 3600))}" : "")}.";
+	}
+
+	private static List<Profession> GetHighestProfessions(Skills s, int count)
+	{
+		List<Skills.SkillType> list = ((Profession[])Enum.GetValues(typeof(Profession))).Select(p => fromProfession(p)).ToList();
+		Skills.Skill[] skills = new Skills.Skill[count];
+		int n = count - 1;
+
+		for (int i = 0; i <= n; i++)
+			skills[i] = new Skills.Skill(new Skills.SkillDef() { m_skill = Skills.SkillType.None });
+
+		if (s != null)
+		{
+			var sdata = s.m_skillData;
+			foreach (var type in list)
+			{
+				if (sdata.ContainsKey(type))
+				{
+					for (int i = n; i >= 0; i--)
+					{
+						if (sdata[type].m_level > skills[n - i].m_level)
+						{
+							for (int j = i; j > 0; j--)
+							{
+								skills[j] = skills[j - 1];
+							}
+							skills[0] = sdata[type];
+						}
+					}
+				}
+			}
+			//Debug.Log($"GetHighestProfessions count={count}:  {string.Join(", ", skills.Select(s=> s.m_info.m_skill))}");
+		}
+		return skills.Select(s => fromSkill(s.m_info.m_skill)).Where(p => p.HasValue).Select(p => p.Value).ToList();
 	}
 
 	[HarmonyPatch(typeof(Menu), nameof(Menu.Update))]
@@ -327,7 +399,7 @@ public class Professions : BaseUnityPlugin
 						Skill_Element skillElement = element.GetComponent<Skill_Element>();
 						skillElement.Select.onClick.AddListener(() =>
 						{
-							if (selectedProfessions(Player.m_localPlayer).Contains(profession))
+							if (GetSelectedProfessions(Player.m_localPlayer).Contains(profession))
 							{
 								if (allowUnselect.Value == Toggle.On && professionChangeCooldown.Value > 0 && Player.m_localPlayer.m_knownStations.TryGetValue("Professions LastProfessionChange", out int lastChange))
 								{
@@ -339,12 +411,37 @@ public class Professions : BaseUnityPlugin
 									}
 								}
 
-								Player.m_localPlayer.m_skills.m_skillData.Remove(skillType);
+								//Debug.LogWarning($"Deselecting profession {skillType}");
+
+								int minThreshold = minimumUnselectedThreshold.Value;
+
+                                if (minThreshold > 0)
+								{
+                                    float minFactor = Mathf.Clamp(minThreshold / 100f, 0f, 1f);
+
+                                    if (Player.m_localPlayer.m_skills.GetSkillFactor(skillType) > minFactor)
+									{
+										Player.m_localPlayer.m_skills.m_skillData.Remove(skillType);
+										Player.m_localPlayer.m_skills.GetSkill(skillType).m_level = Mathf.Clamp(minThreshold * 1f, 0f, 100f);
+									}
+									// else do nothing
+
+								} else
+								{
+									Player.m_localPlayer.m_skills.m_skillData.Remove(skillType);
+								}
+								selectedProfessions[profession] = false;
 								Player.m_localPlayer.m_knownStations["Professions LastProfessionChange"] = (int)((DateTimeOffset)serverTime).ToUnixTimeSeconds();
 							}
 							else
 							{
-								Player.m_localPlayer.m_skills.GetSkill(skillType).m_level = 1;
+								//Debug.LogWarning($"Selecting profession {skillType}");
+
+								if (Player.m_localPlayer.m_skills.GetSkillFactor(skillType) <= 0f)
+								{
+									Player.m_localPlayer.m_skills.GetSkill(skillType).m_level = 1;
+								}
+								selectedProfessions[profession] = true;
 							}
 
 							UpdateSelectPanelSelections();
@@ -355,11 +452,11 @@ public class Professions : BaseUnityPlugin
 		}
 	}
 
-	public static List<Profession> selectedProfessions(Player player) => selectedProfessions(player.m_skills);
+	public static List<Profession> GetSelectedProfessions(Player player) => GetSelectedProfessions(player.m_skills);
 
-	private static List<Profession> selectedProfessions(Skills skills)
+	private static List<Profession> GetSelectedProfessions(Skills skills)
 	{
-		return ((Profession[])Enum.GetValues(typeof(Profession))).Where(profession => blockOtherProfessions[profession].Value != ProfessionToggle.Ignored && skills.m_skillData.TryGetValue(fromProfession(profession), out Skills.Skill skill) && skill.m_level > 0).ToList();
+		return selectedProfessions.Where(p => p.Value == true).Select(p => p.Key).ToList();
 	}
 
 	[HarmonyPatch(typeof(Skills), nameof(Skills.RaiseSkill))]
@@ -367,7 +464,9 @@ public class Professions : BaseUnityPlugin
 	{
 		private static bool Prefix(Skills __instance, Skills.SkillType skillType)
 		{
-			return fromSkill(skillType) is not { } profession || __instance.GetSkillFactor(skillType) > 0 || blockOtherProfessions[profession].Value == ProfessionToggle.Ignored;
+			float skillFactor = Mathf.Clamp(__instance.GetSkillFactor(skillType) * 100f, 0f, 100f);
+            //Debug.Log($"Prof: RaiseSkill called for {skillType}, factor={skillFactor}");
+            return fromSkill(skillType) is not { } profession || selectedProfessions[profession] || (skillFactor >= 0f && skillFactor < minimumUnselectedThreshold.Value) || blockOtherProfessions[profession].Value == ProfessionToggle.Ignored;
 		}
 	}
 
@@ -388,4 +487,51 @@ public class Professions : BaseUnityPlugin
 			}
 		}
 	}
+
+	[HarmonyPatch(typeof(Player), nameof(Player.Save))]
+	private static class StoreProfessions
+	{
+		private static void Prefix(Player __instance)
+		{
+			__instance.m_customData["Professions Selections"] = Serialize(selectedProfessions);
+		}
+	}
+
+	[HarmonyPatch(typeof(Player), nameof(Player.Load))]
+	private static class LoadProfessions
+	{
+		private static void Postfix(Player __instance)
+		{
+			if (Player.m_localPlayer == null) return;
+
+			if (__instance.m_customData.ContainsKey("Professions Selections"))
+			{
+				ResetSelections();
+				Deserialize(__instance.m_customData["Professions Selections"]).ToList().ForEach(x => selectedProfessions[x.Key] = x.Value);
+			}
+			else
+			{   // Convert profession levels to selections
+				List<Profession> professions = GetHighestProfessions(__instance.m_skills, maximumAllowedProfessions.Value);
+
+				if (professions.Count > 0)
+				{
+                    float minFactor = Mathf.Clamp(minimumUnselectedThreshold.Value / 100f, 0f, 1f);
+
+                    Debug.LogWarning("Upgrading highest skills into profession selections: " + string.Join(", ", professions));
+
+					foreach (Profession profession in professions)
+					{
+						Skills.SkillType skillType = fromProfession(profession);
+						if (__instance.m_skills.GetSkillFactor(skillType) > minFactor)
+						{
+							selectedProfessions[profession] = true;
+						}
+					}
+				}
+
+				__instance.m_customData["Professions Selections"] = Serialize(selectedProfessions);
+			}
+		}
+	}
+
 }

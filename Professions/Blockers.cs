@@ -13,7 +13,7 @@ namespace Professions;
 
 public static class Blockers
 {
-	private static bool isAllowed(Profession profession) => Professions.blockOtherProfessions[profession].Value != Professions.ProfessionToggle.BlockUsage || Professions.selectedProfessions(Player.m_localPlayer).Contains(profession);
+	private static bool isAllowed(Profession profession) => Professions.blockOtherProfessions[profession].Value != Professions.ProfessionToggle.BlockUsage || Professions.GetSelectedProfessions(Player.m_localPlayer).Contains(profession);
 
 	[HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.UpdateRecipe))]
 	private class BlockBlacksmithing
