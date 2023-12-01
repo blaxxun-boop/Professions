@@ -28,7 +28,7 @@ public class Professions : BaseUnityPlugin
 	public static ConfigEntry<Toggle> allowUnselect = null!;
 	private static ConfigEntry<float> professionChangeCooldown = null!;
 	public static readonly Dictionary<Profession, ConfigEntry<ProfessionToggle>> blockOtherProfessions = new();
-	internal static ConfigEntry<int> minimumUnselectedThreshold = null!;
+	internal static ConfigEntry<float> minimumUnselectedThreshold = null!;
 	private static Dictionary<Profession, bool> selectedProfessions = new();
 
 	private static DateTime serverTime = DateTime.Now;
@@ -191,7 +191,7 @@ public class Professions : BaseUnityPlugin
 			professionChangeCooldown = config("1 - General", "Profession Change Cooldown", 0f, new ConfigDescription("Time between profession changes. Uses real time hours. Use 0 to disable this.", null, changeCooldownAttributes));
 			professionPanelHotkey = config("1 - General", "Profession Panel Hotkey", new KeyboardShortcut(KeyCode.P), "Key or key combination to open the profession panel.", false);
 
-			minimumUnselectedThreshold = config("1 - General", "Minimum Threshold of Unselected Professions", 0, new ConfigDescription("Minimum allowed XP in all unselected professions.  Defaults to 0.", new AcceptableValueRange<int>(0, 100)));
+			minimumUnselectedThreshold = config("1 - General", "Minimum Threshold of Unselected Professions", 0f, new ConfigDescription("Minimum allowed XP in all unselected professions.  Defaults to 0.0.", new AcceptableValueRange<float>(0, 100)));
 
 			foreach (Profession profession in (Profession[])Enum.GetValues(typeof(Profession)))
 			{
@@ -413,7 +413,7 @@ public class Professions : BaseUnityPlugin
 
 								//Debug.LogWarning($"Deselecting profession {skillType}");
 
-								int minThreshold = minimumUnselectedThreshold.Value;
+								float minThreshold = minimumUnselectedThreshold.Value;
 
                                 if (minThreshold > 0)
 								{
