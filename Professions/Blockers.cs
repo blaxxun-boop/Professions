@@ -13,7 +13,7 @@ namespace Professions;
 
 public static class Blockers
 {
-	private static bool isAllowed(Profession profession) => Professions.blockOtherProfessions[profession].Value != Professions.ProfessionToggle.BlockUsage || Professions.selectedProfessions(Player.m_localPlayer).Contains(profession);
+	private static bool isAllowed(Profession profession) => Professions.blockOtherProfessions[profession].Value != Professions.ProfessionToggle.BlockUsage || Helper.getActiveProfessions().Contains(profession);
 
 	[HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.UpdateRecipe))]
 	private class BlockBlacksmithing
@@ -87,7 +87,7 @@ public static class Blockers
 	{
 		private static bool Prefix(int index)
 		{
-			if ((Piece.PieceCategory)index != Piece.PieceCategory.Building || isAllowed(Profession.Building))
+			if (((Piece.PieceCategory)index != Piece.PieceCategory.BuildingWorkbench && (Piece.PieceCategory)index != Piece.PieceCategory.BuildingStonecutter) || isAllowed(Profession.Building))
 			{
 				return true;
 			}
@@ -102,7 +102,7 @@ public static class Blockers
 	{
 		private static void Postfix(PieceTable __instance)
 		{
-			if (__instance.m_selectedCategory == Piece.PieceCategory.Building && !isAllowed(Profession.Building))
+			if (__instance.m_selectedCategory is Piece.PieceCategory.BuildingWorkbench or Piece.PieceCategory.BuildingStonecutter && !isAllowed(Profession.Building))
 			{
 				__instance.PrevCategory();
 			}
@@ -114,7 +114,7 @@ public static class Blockers
 	{
 		private static void Postfix(PieceTable __instance)
 		{
-			if (__instance.m_selectedCategory == Piece.PieceCategory.Building && !isAllowed(Profession.Building))
+			if (__instance.m_selectedCategory is Piece.PieceCategory.BuildingWorkbench or Piece.PieceCategory.BuildingStonecutter && !isAllowed(Profession.Building))
 			{
 				__instance.NextCategory();
 			}

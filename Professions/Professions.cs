@@ -17,7 +17,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.4.1";
+	private const string ModVersion = "1.4.2";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -26,6 +26,7 @@ public class Professions : BaseUnityPlugin
 	private static ConfigEntry<KeyboardShortcut> professionPanelHotkey = null!;
 	private static ConfigEntry<int> maximumAllowedProfessions = null!;
 	public static ConfigEntry<Toggle> allowUnselect = null!;
+	private static ConfigEntry<Toggle> resetLevelOnUnselect = null!;
 	private static ConfigEntry<float> professionChangeCooldown = null!;
 	public static readonly Dictionary<Profession, ConfigEntry<ProfessionToggle>> blockOtherProfessions = new();
 
@@ -162,6 +163,7 @@ public class Professions : BaseUnityPlugin
 				changeCooldownAttributes.Browsable = allowUnselect.Value == Toggle.On;
 				reloadConfigDisplay();
 			};
+			resetLevelOnUnselect = config("1 - General", "Reset Level on Unlearn", Toggle.On, new ConfigDescription("If on, the skill level of a profession is reset, if you unlearn it.", null, changeCooldownAttributes));
 			professionChangeCooldown = config("1 - General", "Profession Change Cooldown", 0f, new ConfigDescription("Time between profession changes. Uses real time hours. Use 0 to disable this.", null, changeCooldownAttributes));
 			professionPanelHotkey = config("1 - General", "Profession Panel Hotkey", new KeyboardShortcut(KeyCode.P), "Key or key combination to open the profession panel.", false);
 
@@ -261,7 +263,7 @@ public class Professions : BaseUnityPlugin
 
 	private static void UpdateSelectPanelSelections()
 	{
-		List<Profession> activeProfessions = selectedProfessions(Player.m_localPlayer);
+		HashSet<Profession> activeProfessions = Helper.getActiveProfessions();
 		foreach (KeyValuePair<Profession, GameObject> skillElements in professionPanelElements)
 		{
 			Skill_Element element = skillElements.Value.GetComponent<Skill_Element>();
@@ -327,11 +329,11 @@ public class Professions : BaseUnityPlugin
 						Skill_Element skillElement = element.GetComponent<Skill_Element>();
 						skillElement.Select.onClick.AddListener(() =>
 						{
-							if (selectedProfessions(Player.m_localPlayer).Contains(profession))
+							if (Helper.getActiveProfessions().Contains(profession))
 							{
-								if (allowUnselect.Value == Toggle.On && professionChangeCooldown.Value > 0 && Player.m_localPlayer.m_knownStations.TryGetValue("Professions LastProfessionChange", out int lastChange))
+								if (allowUnselect.Value == Toggle.On && professionChangeCooldown.Value > 0 && Player.m_localPlayer.m_customData.TryGetValue("Professions LastProfessionChange", out string lastChange))
 								{
-									int remainingTime = lastChange + (int)(professionChangeCooldown.Value * 3600) - (int)((DateTimeOffset)serverTime).ToUnixTimeSeconds();
+									int remainingTime = int.Parse(lastChange) + (int)(professionChangeCooldown.Value * 3600) - (int)((DateTimeOffset)serverTime).ToUnixTimeSeconds();
 									if (remainingTime > 0)
 									{
 										Player.m_localPlayer.Message(MessageHud.MessageType.Center, $"You can change your profession in {Helper.getHumanFriendlyTime(remainingTime)}.");
@@ -339,12 +341,31 @@ public class Professions : BaseUnityPlugin
 									}
 								}
 
+								if (resetLevelOnUnselect.Value == Toggle.Off)
+								{
+									Dictionary<Profession, float> inactive = Helper.getInactiveProfessions();
+									inactive[profession] = __instance.GetSkill(skillType).m_level;
+									Helper.storeInactiveProfessions(inactive);
+								}
+
+								HashSet<Profession> active = Helper.getActiveProfessions();
+								active.Remove(profession);
+								Helper.storeActiveProfessions(active);
 								Player.m_localPlayer.m_skills.m_skillData.Remove(skillType);
-								Player.m_localPlayer.m_knownStations["Professions LastProfessionChange"] = (int)((DateTimeOffset)serverTime).ToUnixTimeSeconds();
+								Player.m_localPlayer.m_customData["Professions LastProfessionChange"] = ((DateTimeOffset)serverTime).ToUnixTimeSeconds().ToString();
 							}
 							else
 							{
-								Player.m_localPlayer.m_skills.GetSkill(skillType).m_level = 1;
+								Dictionary<Profession, float> inactive = Helper.getInactiveProfessions();
+								if (inactive.TryGetValue(profession, out float level))
+								{
+									Player.m_localPlayer.m_skills.GetSkill(skillType).m_level = level;
+									inactive.Remove(profession);
+									Helper.storeInactiveProfessions(inactive);
+								}
+								HashSet<Profession> active = Helper.getActiveProfessions();
+								active.Add(profession);
+								Helper.storeActiveProfessions(active);
 							}
 
 							UpdateSelectPanelSelections();
@@ -355,19 +376,12 @@ public class Professions : BaseUnityPlugin
 		}
 	}
 
-	public static List<Profession> selectedProfessions(Player player) => selectedProfessions(player.m_skills);
-
-	private static List<Profession> selectedProfessions(Skills skills)
-	{
-		return ((Profession[])Enum.GetValues(typeof(Profession))).Where(profession => blockOtherProfessions[profession].Value != ProfessionToggle.Ignored && skills.m_skillData.TryGetValue(fromProfession(profession), out Skills.Skill skill) && skill.m_level > 0).ToList();
-	}
-
 	[HarmonyPatch(typeof(Skills), nameof(Skills.RaiseSkill))]
 	private class PreventExperience
 	{
-		private static bool Prefix(Skills __instance, Skills.SkillType skillType)
+		private static bool Prefix(Skills.SkillType skillType)
 		{
-			return fromSkill(skillType) is not { } profession || __instance.GetSkillFactor(skillType) > 0 || blockOtherProfessions[profession].Value == ProfessionToggle.Ignored;
+			return fromSkill(skillType) is not { } profession || Helper.getActiveProfessions().Contains(profession) || blockOtherProfessions[profession].Value == ProfessionToggle.Ignored;
 		}
 	}
 
