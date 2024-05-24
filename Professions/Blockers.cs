@@ -54,7 +54,7 @@ public static class Blockers
 
 		private static bool Prefix(Smelter __instance, ref bool __result)
 		{
-			switch (__instance.GetComponent<Piece>().m_name)
+			switch (__instance.GetComponent<Piece>()?.m_name)
 			{
 				case "$piece_smelter":
 				case "$piece_blastfurnace":
