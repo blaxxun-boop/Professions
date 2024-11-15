@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -35,10 +36,10 @@ public static class Blockers
 		[HarmonyPriority(Priority.Last)]
 		private static void Postfix(InventoryGui __instance)
 		{
-			if ((__instance.InCraftTab() || __instance.InUpradeTab()) && __instance.m_selectedRecipe.Key?.m_item is { } itemdrop && CheckBlacksmithingItem(itemdrop.m_itemData.m_shared) && !isAllowed(Profession.Blacksmithing))
+			if ((__instance.InCraftTab() || __instance.InUpradeTab()) && __instance.m_selectedRecipe.Recipe?.m_item is { } itemdrop && CheckBlacksmithingItem(itemdrop.m_itemData.m_shared) && !isAllowed(Profession.Blacksmithing))
 			{
 				__instance.m_craftButton.interactable = false;
-				__instance.m_craftButton.GetComponentInChildren<Text>().text = "You cannot perform this action, because you are not a blacksmith.";
+				__instance.m_craftButton.GetComponentInChildren<TextMeshProUGUI>().text = "You cannot perform this action, because you are not a blacksmith.";
 			}
 		}
 	}
@@ -127,10 +128,10 @@ public static class Blockers
 		[HarmonyPriority(Priority.Last)]
 		private static void Postfix(InventoryGui __instance)
 		{
-			if (__instance.m_selectedRecipe.Key?.m_item is { } itemdrop && itemdrop.m_itemData.m_shared.m_food > 0 && itemdrop.m_itemData.m_shared.m_foodStamina > 0 && !isAllowed(Profession.Cooking))
+			if (__instance.m_selectedRecipe.Recipe?.m_item is { } itemdrop && ((itemdrop.m_itemData.m_shared.m_food > 0 && itemdrop.m_itemData.m_shared.m_foodStamina > 0)|| itemdrop.m_itemData.m_shared.m_appendToolTip?.GetComponent<Feast>()) && !isAllowed(Profession.Cooking))
 			{
 				__instance.m_craftButton.interactable = false;
-				__instance.m_craftButton.GetComponentInChildren<Text>().text = "You cannot perform this action, because you are not a cook.";
+				__instance.m_craftButton.GetComponentInChildren<TextMeshProUGUI>().text = "You cannot perform this action, because you are not a cook.";
 			}
 		}
 	}
@@ -349,7 +350,7 @@ public static class Blockers
 
 		private static Exception? Finalizer(Exception __exception) => __exception is SkipForagingException ? null : __exception;
 	}
-	
+
 	[HarmonyPatch(typeof(Minimap), nameof(Minimap.Explore), typeof(Vector3), typeof(float))]
 	private class BlockExploration
 	{

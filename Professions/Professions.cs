@@ -17,7 +17,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.4.3";
+	private const string ModVersion = "1.4.4";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -131,7 +131,7 @@ public class Professions : BaseUnityPlugin
 		},
 	};
 
-	private static Skills.SkillType fromProfession(Profession profession) => (Skills.SkillType)Math.Abs(profession.ToString().GetStableHashCode());
+	private static Skills.SkillType fromProfession(Profession profession) => profession switch { Profession.Cooking => Skills.SkillType.Cooking, Profession.Farming => Skills.SkillType.Farming, _ => (Skills.SkillType)Math.Abs(profession.ToString().GetStableHashCode()) };
 	private static Profession? fromSkill(Skills.SkillType skill) => ((Profession[])Enum.GetValues(typeof(Profession))).Select(p => (Profession?)p).FirstOrDefault(p => skill == fromProfession(p!.Value));
 	private static GameObject professionPanel = null!;
 	private static GameObject? professionPanelInstance;
@@ -322,7 +322,7 @@ public class Professions : BaseUnityPlugin
 					}
 					else
 					{
-						GameObject element = panel.InstantiateSkill(skill.m_info.m_icon, Localization.instance.Localize("$skill_" + (int)fromProfession(profession)), professionDescriptions[profession], "Select");
+						GameObject element = panel.InstantiateSkill(skill.m_info.m_icon, Localization.instance.Localize(("$skill_" + fromProfession(profession)).ToLowerInvariant()), professionDescriptions[profession], "Select");
 						professionPanelElements[profession] = element;
 						element.SetActive(blockOtherProfessions[profession].Value != ProfessionToggle.Ignored);
 
