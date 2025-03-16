@@ -17,7 +17,7 @@ namespace Professions;
 public class Professions : BaseUnityPlugin
 {
 	private const string ModName = "Professions";
-	private const string ModVersion = "1.4.4";
+	private const string ModVersion = "1.4.5";
 	private const string ModGUID = "org.bepinex.plugins.professions";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -292,8 +292,8 @@ public class Professions : BaseUnityPlugin
 	{
 		private static void Prefix(Hud __instance)
 		{
-			Transform transform = __instance.gameObject.GetComponentInParent<Localize>().gameObject.transform;
-			professionPanelInstance = Instantiate(professionPanel, transform, false);
+			Transform hudroot = __instance.m_rootObject.transform;
+			professionPanelInstance = Instantiate(professionPanel, hudroot, false);
 			professionPanelInstance.SetActive(false);
 			professionPanelInstance.transform.SetSiblingIndex(MessageHud.instance.transform.GetSiblingIndex());
 

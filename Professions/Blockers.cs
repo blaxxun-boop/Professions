@@ -6,7 +6,6 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Object = UnityEngine.Object;
 using Profession = Professions.Professions.Profession;
 

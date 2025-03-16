@@ -30,11 +30,11 @@ public class ProfessionPanel : MonoBehaviour
 
 	public void Awake()
 	{
-		GameObject ingameGui = transform.parent.gameObject;
+		Transform ingameGui = transform.parent.parent.parent;
 
-		Image ornament = ingameGui.transform.Find("Menu/MenuRoot/Menu/ornament").gameObject.GetComponent<Image>();
-		Image background = ingameGui.transform.Find("Inventory_screen/root/Player/Bkg").gameObject.GetComponent<Image>();
-		TMP_FontAsset fontStyle = ingameGui.transform.Find("Inventory_screen/root/Player/Armor/ac_text").gameObject.GetComponent<TextMeshProUGUI>().font;
+		Image ornament = ingameGui.Find("Menu/MenuRoot/Menu/ornament").gameObject.GetComponent<Image>();
+		Image background = ingameGui.Find("Inventory_screen/root/Player/Bkg").gameObject.GetComponent<Image>();
+		TMP_FontAsset fontStyle = ingameGui.Find("Inventory_screen/root/Player/Armor/ac_text").gameObject.GetComponent<TextMeshProUGUI>().font;
 
 		description.font = fontStyle.sourceFontFile;
 		header.font = fontStyle.sourceFontFile;
